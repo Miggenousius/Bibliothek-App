@@ -20,8 +20,6 @@
   - Generierung und Upload von PDFs inkl. QR-Code-Verknüpfung
 */
 
-
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -91,7 +89,7 @@ class _BibliothekFormularErstellenState extends State<BibliothekFormularErstelle
   }
 
   void submitForm() async {
-    final localContext = context; // 💡 Lokale Kopie von context
+    final localContext = context;
 
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
@@ -123,16 +121,20 @@ class _BibliothekFormularErstellenState extends State<BibliothekFormularErstelle
 
       final googleUser = await GoogleSignIn().signInSilently();
 
-
       if (googleUser != null) {
         await uploadPdfToDrive(
           pdfFile,
           googleUser,
-          localContext, // ⬅️ sichere Kopie verwenden
+          localContext,
           artikel.fach,
           artikel.klassenstufe,
           artikel.titel,
-          '',
+          artikel.zyklus,
+          artikel.schwierigkeitsgrad,
+          artikel.lagerort,
+          artikel.beinhalteteElemente,
+          artikel.beschreibung,
+          '', // pdfTextContent kann später ersetzt werden
         );
 
         if (mounted) {
@@ -147,7 +149,6 @@ class _BibliothekFormularErstellenState extends State<BibliothekFormularErstelle
       }
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -168,23 +169,19 @@ class _BibliothekFormularErstellenState extends State<BibliothekFormularErstelle
                   if (value == null || value.isEmpty) {
                     return 'Bitte Titel angeben';
                   }
-
                   final verboteneZeichen = RegExp(r'[\/:*?"<>|]');
                   if (verboteneZeichen.hasMatch(value)) {
                     return 'Der Titel darf keine Sonderzeichen wie / \\ : * ? " < > | enthalten.';
                   }
-
                   final box = Hive.box('bibliothek_artikel');
                   final vorhandeneTitel = box.values
                       .cast<Map>()
                       .map((e) => e['titel']?.toString().toLowerCase())
                       .whereType<String>()
                       .toList();
-
                   if (vorhandeneTitel.contains(value.toLowerCase())) {
                     return 'Ein Artikel mit diesem Titel existiert bereits.';
                   }
-
                   return null;
                 },
               ),
@@ -223,11 +220,10 @@ class _BibliothekFormularErstellenState extends State<BibliothekFormularErstelle
                 maxLines: null,
                 decoration: const InputDecoration(
                   labelText: 'Beinhaltete Elemente',
-                  hintText: 'z. B.\n• Leseblatt\n• Fragen zum Text\n• Wortschatzübung',
+                  hintText: 'z.\u202Fz.\u202F\n• Leseblatt\n• Fragen zum Text\n• Wortschatzübung',
                   border: UnderlineInputBorder(),
                 ),
                 onChanged: (text) {
-                  // Automatisch "•" bei neuer Zeile
                   final lines = text.split('\n');
                   for (int i = 0; i < lines.length; i++) {
                     if (lines[i].isNotEmpty && !lines[i].trimLeft().startsWith('•')) {
@@ -271,6 +267,7 @@ class _BibliothekFormularErstellenState extends State<BibliothekFormularErstelle
       ),
     );
   }
+
   void zeigeBildQuelleAuswahl(BuildContext context) {
     showModalBottomSheet(
       context: context,

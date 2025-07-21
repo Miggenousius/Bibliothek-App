@@ -43,8 +43,14 @@ Future<void> uploadPdfToDrive(
     String fach,
     String klassenstufe,
     String titel,
+    String zyklus,
+    String schwierigkeitsgrad,
+    String lagerort,
+    String beinhalteteElemente,
+    String hinweiseZurNutzung,
     String pdfTextContent,
     ) async {
+
   try {
     // Ladeanzeige
     showDialog(
@@ -100,13 +106,13 @@ Titel: $titel
 Zyklus: $zyklus
 Fach: $fach
 Klassenstufe: $klassenstufe
-Schwierigkeitsgrad: mittel
+Schwierigkeitsgrad: $schwierigkeitsgrad
 Verantwortliche Person: ${user.displayName ?? user.email}
-Lagerort: (bitte manuell ergänzen)
+Lagerort: $lagerort
 Beinhaltete Elemente:
-$pdfTextContent
+$beinhalteteElemente
 Hinweise zur Nutzung:
-(bitte manuell ergänzen)
+$hinweiseZurNutzung
 ''';
 
     final txtBytes = utf8.encode(txtInhalt);

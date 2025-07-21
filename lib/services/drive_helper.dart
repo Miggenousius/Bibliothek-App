@@ -152,6 +152,24 @@ Future<void> loeschePdfEintrag(PdfEintrag eintrag, BuildContext context) async {
   // Google Drive: Datei löschen
   await driveApi.files.delete(fileId);
 
+  // TXT-Datei löschen (gleicher Titel wie PDF)
+  try {
+    final txtQuery =
+        "name='${eintrag.titel}.txt' and trashed=false";
+    final txtResult = await driveApi.files.list(q: txtQuery, spaces: 'drive');
+
+    if (txtResult.files != null && txtResult.files!.isNotEmpty) {
+      for (final txtFile in txtResult.files!) {
+        await driveApi.files.delete(txtFile.id!);
+        print("🗑️ TXT-Datei gelöscht (${txtFile.name})");
+      }
+    } else {
+      print("⚠️ Keine passende TXT-Datei gefunden.");
+    }
+  } catch (e) {
+    print("❌ Fehler beim Löschen der TXT-Datei: $e");
+  }
+
   // QR-Code suchen und löschen
   try {
     const hauptordnerId = '16Bc6D8Yv1ll-zkLsQOp8qxONMe4UvEEd'; // "kigaprima Bibliothek"
