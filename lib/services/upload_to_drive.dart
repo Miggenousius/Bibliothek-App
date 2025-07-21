@@ -23,8 +23,9 @@
   - QR-Code-Verwaltung zur eindeutigen Identifikation von physischen Ausleihobjekten
 */
 
-
 import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:googleapis_auth/googleapis_auth.dart' as auth;
@@ -34,8 +35,6 @@ import 'package:bibliotheks_app/models/hive_pdf_model.dart';
 import 'package:bibliotheks_app/services/drive_helper.dart';
 import 'package:hive/hive.dart';
 import 'package:bibliotheks_app/services/qr_helper.dart';
-import 'dart:typed_data';
-
 
 Future<void> uploadPdfToDrive(
     File pdfFile,
@@ -44,7 +43,7 @@ Future<void> uploadPdfToDrive(
     String fach,
     String klassenstufe,
     String titel,
-    String pdfTextContent, // <--- hier neu
+    String pdfTextContent,
     ) async {
   try {
     // Ladeanzeige
@@ -78,7 +77,16 @@ Future<void> uploadPdfToDrive(
     final fachOrdnerId = await getOrCreateFolder(fach, hauptordnerId, driveApi);
     final klasseOrdnerId = await getOrCreateFolder(klassenstufe, fachOrdnerId, driveApi);
 
-    // Datei hochladen
+    // Zyklus berechnen
+    final zyklus = klassenstufe.contains('1.') || klassenstufe.contains('2.')
+        ? '1. Zyklus'
+        : klassenstufe.contains('3.') || klassenstufe.contains('4.')
+        ? '2. Zyklus'
+        : klassenstufe.contains('5.') || klassenstufe.contains('6.')
+        ? '3. Zyklus'
+        : 'Unbekannter Zyklus';
+
+    // PDF hochladen
     final fileMetadata = drive.File()
       ..name = '$titel.pdf'
       ..parents = [klasseOrdnerId];
@@ -86,7 +94,33 @@ Future<void> uploadPdfToDrive(
     final media = drive.Media(pdfFile.openRead(), await pdfFile.length());
     final uploadedFile = await driveApi.files.create(fileMetadata, uploadMedia: media);
 
-    // Datei öffentlich lesbar machen
+    // TXT-Datei erzeugen & hochladen
+    final txtInhalt = '''
+Titel: $titel
+Zyklus: $zyklus
+Fach: $fach
+Klassenstufe: $klassenstufe
+Schwierigkeitsgrad: mittel
+Verantwortliche Person: ${user.displayName ?? user.email}
+Lagerort: (bitte manuell ergänzen)
+Beinhaltete Elemente:
+$pdfTextContent
+Hinweise zur Nutzung:
+(bitte manuell ergänzen)
+''';
+
+    final txtBytes = utf8.encode(txtInhalt);
+    final txtFileName = '$titel.txt';
+    final txtMedia = drive.Media(Stream.value(txtBytes), txtBytes.length);
+
+    final txtFileMetadata = drive.File()
+      ..name = txtFileName
+      ..parents = [klasseOrdnerId]
+      ..mimeType = 'text/plain';
+
+    await driveApi.files.create(txtFileMetadata, uploadMedia: txtMedia);
+
+    // PDF öffentlich freigeben
     await driveApi.permissions.create(
       drive.Permission()
         ..type = 'anyone'
@@ -97,9 +131,8 @@ Future<void> uploadPdfToDrive(
     final fileId = uploadedFile.id;
     final pdfUrl = 'https://drive.google.com/file/d/$fileId/view?usp=sharing';
 
-    // QR-Code erzeugen und hochladen
+    // QR-Code generieren & hochladen
     final qrImageBytes = await generateQrCodeBytes(pdfUrl);
-
     await uploadQrCodeToDrive(
       qrImageBytes: qrImageBytes,
       fileName: titel,
@@ -109,14 +142,7 @@ Future<void> uploadPdfToDrive(
 
     print('Uploader-E-Mail beim Hochladen: ${user.email}');
 
-    final zyklus = klassenstufe.contains('1.') || klassenstufe.contains('2.')
-        ? '1. Zyklus'
-        : klassenstufe.contains('3.') || klassenstufe.contains('4.')
-        ? '2. Zyklus'
-        : klassenstufe.contains('5.') || klassenstufe.contains('6.')
-        ? '3. Zyklus'
-        : 'Unbekannter Zyklus';
-
+    // PdfEintrag erstellen
     final kompletterText = '''
 Titel: $titel
 Fach: $fach
@@ -126,13 +152,13 @@ Schwierigkeitsgrad: mittel
 
 $pdfTextContent
 ''';
-    // PdfEintrag erstellen
+
     final eintrag = PdfEintrag(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       titel: titel,
       fach: fach,
       klassenstufe: klassenstufe,
-      zyklus: zyklus, // <-- Nutzt die Variable von oben
+      zyklus: zyklus,
       stufe: 'mittel',
       uploader: user.email,
       text: kompletterText,
@@ -196,12 +222,10 @@ Future<void> uploadQrCodeToDrive({
   required String userEmail,
   required drive.DriveApi driveApi,
 }) async {
-  // QR Codes → Nutzerordner
   const String hauptordnerId = '16Bc6D8Yv1ll-zkLsQOp8qxONMe4UvEEd';
   final qrRootId = await getOrCreateFolder('QR Codes', hauptordnerId, driveApi);
   final userFolderId = await getOrCreateFolder(userEmail, qrRootId, driveApi);
 
-  // Datei hochladen
   final media = drive.Media(Stream.fromIterable([qrImageBytes]), qrImageBytes.length);
   final file = drive.File()
     ..name = '$fileName.png'
@@ -210,4 +234,3 @@ Future<void> uploadQrCodeToDrive({
 
   await driveApi.files.create(file, uploadMedia: media);
 }
-

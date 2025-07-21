@@ -25,6 +25,10 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:bibliotheks_app/services/drive_helper.dart';
 import 'package:bibliotheks_app/pages/artikel/bibliothek_artikel_page.dart';
 import 'package:bibliotheks_app/pages/suche/qr_scan_page.dart';
+import 'package:googleapis/drive/v3.dart' as drive;
+import 'package:bibliotheks_app/services/google_auth_helper.dart';
+
+
 
 class Suchseite extends StatefulWidget {
   const Suchseite({super.key});
@@ -76,6 +80,26 @@ class _SuchseiteState extends State<Suchseite> {
     });
   }
 
+  Future<void> aktualisiereEintraegeVomDrive() async {
+    try {
+      var user = await GoogleSignIn().signInSilently();
+      if (user == null) user = await GoogleSignIn().signIn();
+      if (user == null) return;
+
+      final driveApi = await googleDriveApiHolen();
+
+      // 1. Daten aus Drive laden und in Hive speichern
+      await syncFromGoogleDrive(driveApi, '1qIXPUq2xsbrQzkrQ01-iCjT_hWArkpBh');
+
+      // 2. Hive-Inhalte neu laden
+      setState(() {
+        alleEintraege = Hive.box<PdfEintrag>('pdf_eintraege').values.toList();
+      });
+    } catch (e) {
+      print("❌ Fehler beim Aktualisieren: $e");
+    }
+  }
+
 
   void sucheStarten() {
     setState(() {
@@ -120,25 +144,49 @@ class _SuchseiteState extends State<Suchseite> {
     ('Filter: Zyklus=$ausgewaehlterZyklus, Fach=$ausgewaehltesFach, Klasse=$ausgewaehlteKlasse, Schwierigkeit=$ausgewaehlteSchwierigkeit, Suchbegriff=$suchbegriff');
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Bibliotheksartikel suchen')),
+      appBar: AppBar(
+        title: const Text('Bibliotheksartikel suchen'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Daten aktualisieren',
+            onPressed: () async {
+              await aktualisiereEintraegeVomDrive();
+            },
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             //  Hier ist das einklappbares Filtermenü
+            // Immer sichtbares Suchfeld
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: suchbegriffController,
+                    decoration: const InputDecoration(
+                      labelText: 'Suchbegriff',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.search),
+                  onPressed: sucheStarten,
+                  tooltip: 'Suche starten',
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
             ExpansionTile(
               initiallyExpanded: false,
               title: const Text('Filter anzeigen'),
               children: [
                 const SizedBox(height: 10),
-                TextField(
-                  controller: suchbegriffController,
-                  decoration: const InputDecoration(
-                    labelText: 'Suchbegriff',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 20),
                 DropdownButtonFormField<String>(
                   value: dropdownZyklus,
                   items: [

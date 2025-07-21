@@ -24,6 +24,9 @@ import '../artikel/bibliothek_formular_erstellen.dart';
 import '../suche/suchseite.dart';
 import 'package:bibliotheks_app/pages/meine_artikel/meine_pdfs_und_qrcodes.dart';
 import 'package:bibliotheks_app/services/drive_helper.dart'; // Stelle sicher, dass diese Datei die Funktion `syncFromGoogleDrive` enthält.
+import 'package:bibliotheks_app/models/hive_pdf_model.dart';
+import 'package:hive/hive.dart';
+
 
 class BibliotheksStartseite extends StatelessWidget {
   final String userName;
@@ -37,6 +40,7 @@ class BibliotheksStartseite extends StatelessWidget {
 
   Future<void> _triggerSync(BuildContext context) async {
     try {
+      await Hive.box<PdfEintrag>('pdf_eintraege').clear();
       var user = await GoogleSignIn().signInSilently();
       if (user == null) {
         // Fallback: Nutzer auffordern, sich erneut anzumelden
@@ -53,7 +57,7 @@ class BibliotheksStartseite extends StatelessWidget {
       final client = GoogleAuthClient(authHeaders);
       final driveApi = drive.DriveApi(client);
 
-      await syncFromGoogleDrive(driveApi, fileId);
+      await syncFromGoogleDrive(driveApi, '1qIXPUq2xsbrQzkrQ01-iCjT_hWArkpBh');
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("✅ Synchronisation erfolgreich!")),
