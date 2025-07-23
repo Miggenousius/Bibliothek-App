@@ -160,7 +160,7 @@ $pdfTextContent
 ''';
 
     final eintrag = PdfEintrag(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: fileId!,  // 🔁 Das ist die echte Drive-ID!
       titel: titel,
       fach: fach,
       klassenstufe: klassenstufe,

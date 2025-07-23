@@ -60,10 +60,13 @@ class _QRScanPageState extends State<QRScanPage> {
   Future<void> _verarbeiteQRCode(String code) async {
     controller?.pauseCamera();
 
-    if (code == widget.pdfId) {
-      final driveApi = await googleDriveApiHolen();
+    print('📦 Gescannter Code: $code');
+    print('🎯 Erwartete pdfId: ${widget.pdfId}');
 
-      // Aktuellen Nutzer aus dem GoogleSignIn holen
+    if (code.trim().contains(widget.pdfId.trim())) {
+      print('✅ PDF-ID erkannt, starte Ausleihe...');
+
+      final driveApi = await googleDriveApiHolen();
       final googleSignIn = GoogleSignIn();
       final aktuellerUser = await googleSignIn.signInSilently();
       final aktuellerUserEmail = aktuellerUser?.email ?? 'unbekannt';
@@ -88,6 +91,8 @@ class _QRScanPageState extends State<QRScanPage> {
         );
       }
     } else {
+      print('❌ QR-Code enthält nicht die erwartete pdfId.');
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('❌ QR-Code ungültig')),
@@ -95,6 +100,7 @@ class _QRScanPageState extends State<QRScanPage> {
       }
     }
   }
+
 
   @override
   void dispose() {
