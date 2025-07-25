@@ -21,12 +21,14 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:googleapis_auth/auth_io.dart' as auth;
 import 'package:googleapis/drive/v3.dart' as drive;
+import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 /// Google Sign-In Konfiguration mit benötigten Scopes
 final GoogleSignIn googleSignIn = GoogleSignIn(
   scopes: [
     'email',
-    'https://www.googleapis.com/auth/drive.file',
+    'https://www.googleapis.com/auth/drive', // 🔁 vollständiger Zugriff
   ],
 );
 
@@ -48,4 +50,11 @@ Future<drive.DriveApi> googleDriveApiHolen() async {
   );
 
   return drive.DriveApi(client);
+}
+Future<void> logout(BuildContext context) async {
+  await googleSignIn.signOut();  // benutze die bereits definierte Instanz
+
+  if (context.mounted) {
+    Navigator.of(context).pushReplacementNamed('/'); // oder Login-Seite
+  }
 }

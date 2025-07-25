@@ -26,6 +26,7 @@ import 'package:bibliotheks_app/pages/meine_artikel/meine_pdfs_und_qrcodes.dart'
 import 'package:bibliotheks_app/services/drive_helper.dart'; // Stelle sicher, dass diese Datei die Funktion `syncFromGoogleDrive` enthält.
 import 'package:bibliotheks_app/models/hive_pdf_model.dart';
 import 'package:hive/hive.dart';
+import 'package:bibliotheks_app/services/google_auth_helper.dart'; // ganz oben einfügen
 
 
 class BibliotheksStartseite extends StatelessWidget {
@@ -78,8 +79,9 @@ class BibliotheksStartseite extends StatelessWidget {
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => _triggerSync(context),
+            icon: const Icon(Icons.logout), // 🚪 mit Pfeil
+            tooltip: 'Abmelden',
+            onPressed: () => logout(context),
           ),
         ],
       ),
