@@ -19,9 +19,12 @@ import 'package:flutter/material.dart';
 import '../../widgets/google_login.dart';
 
 class Startseite extends StatefulWidget {
+  const Startseite({super.key}); // ✅ const hinzugefügt
+
   @override
   _StartseiteState createState() => _StartseiteState();
 }
+
 
 class _StartseiteState extends State<Startseite> {
   @override

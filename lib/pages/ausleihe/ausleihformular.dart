@@ -29,6 +29,22 @@ class _AusleihformularState extends State<Ausleihformular> {
     super.initState();
     _initialisiereBenutzerdaten();
   }
+  void _zeigeLadeDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return const AlertDialog(
+          content: SizedBox(
+            height: 80,
+            child: Center(
+              child: CircularProgressIndicator(),
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   Future<void> _initialisiereBenutzerdaten() async {
     final user = await GoogleSignIn().signInSilently();
@@ -129,7 +145,10 @@ class _AusleihformularState extends State<Ausleihformular> {
                   ),
                   ElevatedButton(
                     onPressed: () => _waehleDatum(istVon: true),
-                    child: const Text('Datum wählen'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _vonDatum != null ? Colors.grey.shade400 : null,
+                    ),
+                    child: Text(_vonDatum != null ? 'Erneut wählen' : 'Datum wählen'),
                   ),
                 ],
               ),
@@ -143,7 +162,10 @@ class _AusleihformularState extends State<Ausleihformular> {
                   ),
                   ElevatedButton(
                     onPressed: () => _waehleDatum(istVon: false),
-                    child: const Text('Datum wählen'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _bisDatum != null ? Colors.grey.shade400 : null,
+                    ),
+                    child: Text(_bisDatum != null ? 'Erneut wählen' : 'Datum wählen'),
                   ),
                 ],
               ),
@@ -163,6 +185,8 @@ class _AusleihformularState extends State<Ausleihformular> {
                     );
                     return;
                   }
+
+                  _zeigeLadeDialog(); // 🔄 Ladeindikator direkt beim Klick
 
                   try {
                     final result = await googleDriveApiHolen();
@@ -184,16 +208,18 @@ class _AusleihformularState extends State<Ausleihformular> {
                     await speichereAusleiheStatus(status: status, driveApi: driveApi);
 
                     if (mounted) {
+                      Navigator.of(context).pop(); // 🔚 Ladeindikator schließen
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('✅ Bibliotheksartikel erfolgreich ausgeliehen'),
                           backgroundColor: Colors.green,
                         ),
                       );
-                      Navigator.pop(context);
+                      Navigator.pop(context); // zurück zur vorherigen Seite
                     }
                   } catch (e) {
                     if (mounted) {
+                      Navigator.of(context).pop(); // 🔚 Ladeindikator schließen
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('❌ Fehler beim Ausleihen: $e'),

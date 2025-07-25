@@ -22,6 +22,10 @@ import 'package:flutter/foundation.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:googleapis_auth/auth_io.dart';
 import '../models/ausleihe_status.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter/material.dart';
+import '../main.dart'; //
+
 
 const String AUSLEIH_ORDNER_ID = '16fvytAToCE2UztuH60YhY9EZc2mSIcc7';
 
@@ -111,4 +115,75 @@ Future<void> speichereAusleiheStatus({
   );
 
   debugPrint('✅ Neue Ausleihe-Datei gespeichert: ${result.id}');
+
+// 🆕 Daten ans Apps Script senden
+  await syncMitAppsScript(status);
 }
+
+// 🔄 Apps Script Sync außerhalb definieren!
+Future<void> syncMitAppsScript(AusleiheStatus status) async {
+  const scriptUrl = 'https://script.google.com/macros/s/AKfycbzeXR5H4rJwIQY7eNaIYlrgiIuxT_e1iqhiCFmxh_NS1FrgJldlXAdkizVLJLwAJik9/exec';
+
+  zeigeLadeDialog(); // 🔄 Ladeanzeige starten
+
+  try {
+    final response = await http.post(
+      Uri.parse(scriptUrl),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(status.toJson()),
+    );
+
+    final decoded = jsonDecode(response.body);
+
+    schliesseLadeDialog(); // ✅ Ladeanzeige beenden
+
+    if (response.statusCode == 200) {
+      debugPrint('✅ Apps Script erfolgreich:\n${decoded['message']}');
+      zeigeSnackbar(decoded['message'] ?? 'Aktion erfolgreich!');
+    } else {
+      debugPrint('❌ Fehler:\n${response.body}');
+      zeigeSnackbar('Fehler: ${decoded['message']}');
+    }
+  } catch (e) {
+    schliesseLadeDialog(); // ❌ Ladeanzeige beenden auch bei Fehler
+    debugPrint('❌ Ausnahme beim Sync: $e');
+    zeigeSnackbar('Verbindungsfehler');
+  }
+}
+void zeigeSnackbar(String nachricht) {
+  final context = navigatorKey.currentContext;
+  if (context != null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(nachricht)),
+    );
+  }
+}
+void zeigeLadeDialog() {
+  final context = navigatorKey.currentContext;
+  if (context != null) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: Row(
+            children: const [
+              CircularProgressIndicator(),
+              SizedBox(width: 20),
+              Text("Bitte warten..."),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+void schliesseLadeDialog() {
+  final context = navigatorKey.currentContext;
+  if (context != null && Navigator.of(context, rootNavigator: true).canPop()) {
+    Navigator.of(context, rootNavigator: true).pop();
+  }
+}
+
+
