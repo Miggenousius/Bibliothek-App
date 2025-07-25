@@ -23,7 +23,7 @@ import 'package:http/http.dart' as http;
 import '../artikel/bibliothek_formular_erstellen.dart';
 import '../suche/suchseite.dart';
 import 'package:bibliotheks_app/pages/meine_artikel/meine_pdfs_und_qrcodes.dart';
-import 'package:bibliotheks_app/services/drive_helper.dart'; // Stelle sicher, dass diese Datei die Funktion `syncFromGoogleDrive` enthält.
+import 'package:bibliotheks_app/services/drive_helper.dart';
 import 'package:bibliotheks_app/models/hive_pdf_model.dart';
 import 'package:hive/hive.dart';
 import 'package:bibliotheks_app/services/google_auth_helper.dart'; // ganz oben einfügen
@@ -72,6 +72,12 @@ class BibliotheksStartseite extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Future<void> logout() async {
+      await googleSignIn.signOut();
+      if (!context.mounted) return;
+      Navigator.of(context).pushReplacementNamed('/');
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Kigaprima-Bibliothek'),
@@ -81,7 +87,7 @@ class BibliotheksStartseite extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.logout), // 🚪 mit Pfeil
             tooltip: 'Abmelden',
-            onPressed: () => logout(context),
+            onPressed: logout,
           ),
         ],
       ),
@@ -154,7 +160,7 @@ class BibliotheksStartseite extends StatelessWidget {
   }
 }
 
-class GoogleAuthClient extends http.BaseClient {
+  class GoogleAuthClient extends http.BaseClient {
   final Map<String, String> _headers;
   final http.Client _client = http.Client();
 

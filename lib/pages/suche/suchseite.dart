@@ -24,7 +24,7 @@ import '../../models/hive_pdf_model.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:bibliotheks_app/services/drive_helper.dart';
 import 'package:bibliotheks_app/pages/artikel/bibliothek_artikel_page.dart';
-import 'package:bibliotheks_app/pages/suche/qr_scan_page.dart';
+import 'package:bibliotheks_app/pages/ausleihe/qr_scan_page.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:bibliotheks_app/services/google_auth_helper.dart';
 
@@ -86,7 +86,8 @@ class _SuchseiteState extends State<Suchseite> {
       if (user == null) user = await GoogleSignIn().signIn();
       if (user == null) return;
 
-      final driveApi = await googleDriveApiHolen();
+      final result = await googleDriveApiHolen(); // ⬅️ Neues Rückgabeobjekt
+      final driveApi = result.driveApi;
 
       // 1. Daten aus Drive laden und in Hive speichern
       await syncFromGoogleDrive(driveApi, '1qIXPUq2xsbrQzkrQ01-iCjT_hWArkpBh');
@@ -99,6 +100,7 @@ class _SuchseiteState extends State<Suchseite> {
       print("❌ Fehler beim Aktualisieren: $e");
     }
   }
+
 
 
   void sucheStarten() {

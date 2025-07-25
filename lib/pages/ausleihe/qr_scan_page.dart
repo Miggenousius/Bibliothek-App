@@ -20,6 +20,8 @@ import 'package:qr_code_scanner/qr_code_scanner.dart';
 import 'package:bibliotheks_app/services/ausleihe_service.dart';
 import 'package:bibliotheks_app/services/google_auth_helper.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:bibliotheks_app/pages/ausleihe/ausleihformular.dart';
+
 
 
 class QRScanPage extends StatefulWidget {
@@ -64,30 +66,17 @@ class _QRScanPageState extends State<QRScanPage> {
     print('🎯 Erwartete pdfId: ${widget.pdfId}');
 
     if (code.trim().contains(widget.pdfId.trim())) {
-      print('✅ PDF-ID erkannt, starte Ausleihe...');
-
-      final driveApi = await googleDriveApiHolen();
-      final googleSignIn = GoogleSignIn();
-      final aktuellerUser = await googleSignIn.signInSilently();
-      final aktuellerUserEmail = aktuellerUser?.email ?? 'unbekannt';
-
-      final status = await ladeOderErstelleAusleiheStatus(
-        pdfId: widget.pdfId,
-        titel: widget.titel,
-        driveApi: driveApi,
-      );
-
-      status.ausgeliehenVon = aktuellerUserEmail;
-      status.ausgeliehenAm = DateTime.now();
-      status.rueckgabeBis = DateTime.now().add(const Duration(days: 14));
-      status.zurueckgegebenAm = null;
-
-      await speichereAusleiheStatus(status: status, driveApi: driveApi);
+      print('✅ PDF-ID erkannt, öffne Ausleihformular...');
 
       if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Ausleihe erfolgreich über QR-Code')),
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => Ausleihformular(
+              pdfId: widget.pdfId,
+              titel: widget.titel,
+            ),
+          ),
         );
       }
     } else {
@@ -100,6 +89,7 @@ class _QRScanPageState extends State<QRScanPage> {
       }
     }
   }
+
 
 
   @override

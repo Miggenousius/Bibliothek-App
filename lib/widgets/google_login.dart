@@ -2,7 +2,7 @@
   Datei: google_login.dart
   Zweck: Google-Login-Button für @kigaprima.ch-Nutzer mit Datenimport aus Google Drive
   Autor: Michi Zumbrunnen
-  Letzte Änderung: 05. Juni 2025
+  Letzte Änderung: 24. Juli 2025
 
   Beschreibung:
   Dieses Widget bietet einen Login-Button, mit dem sich Nutzer über Google anmelden können.
@@ -12,14 +12,14 @@
 
   Verwendet in:
   - `startseite.dart` als Einstiegspunkt zur Bibliotheks-App
-  - Authentifizierter Zugriff auf Drive-Funktionen und lokale Dateninitialisierung
 */
 
-import 'package:bibliotheks_app/pages/bibliothek/bibliotheks_startseite.dart';
 import 'package:flutter/material.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:bibliotheks_app/pages/bibliothek/bibliotheks_startseite.dart';
 import 'package:bibliotheks_app/services/drive_helper.dart';
-import 'package:bibliotheks_app/services/google_auth_helper.dart'; // ✅ zentraler Login & Drive-Zugriff
+import 'package:bibliotheks_app/services/google_auth_helper.dart';
 
 class GoogleLoginButton extends StatefulWidget {
   @override
@@ -37,10 +37,11 @@ class _GoogleLoginButtonState extends State<GoogleLoginButton> {
     try {
       final user = await googleSignIn.signIn();
       if (user != null && user.email.endsWith('@kigaprima.ch')) {
-        print("✅ Erfolgreich angemeldet: "+user.email);
+        print("✅ Erfolgreich angemeldet: ${user.email}");
 
-        // 🔐 Drive-API initialisieren
-        final driveApi = await googleDriveApiHolen();
+        // 🔐 Drive-API und Auth-Client initialisieren
+        final result = await googleDriveApiHolen();
+        final driveApi = result.driveApi;
 
         // 📁 JSON-Datei-ID suchen oder erstellen
         final fileId = await getOrCreateBibliothekJsonInOrdner(driveApi);
@@ -60,14 +61,14 @@ class _GoogleLoginButtonState extends State<GoogleLoginButton> {
       } else {
         print("⛔ Falsche E-Mail-Adresse");
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Bitte nutze eine @kigaprima.ch-Adresse!")),
+          const SnackBar(content: Text("Bitte nutze eine @kigaprima.ch-Adresse!")),
         );
         await googleSignIn.signOut();
       }
     } catch (e) {
       print("❌ Fehler beim Login: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Anmeldung fehlgeschlagen")),
+        const SnackBar(content: Text("Anmeldung fehlgeschlagen")),
       );
     } finally {
       setState(() {
