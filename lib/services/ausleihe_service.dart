@@ -124,8 +124,6 @@ Future<void> speichereAusleiheStatus({
 Future<void> syncMitAppsScript(AusleiheStatus status) async {
   const scriptUrl = 'https://script.google.com/macros/s/AKfycbzeXR5H4rJwIQY7eNaIYlrgiIuxT_e1iqhiCFmxh_NS1FrgJldlXAdkizVLJLwAJik9/exec';
 
-  zeigeLadeDialog(); // 🔄 Ladeanzeige starten
-
   try {
     final response = await http.post(
       Uri.parse(scriptUrl),
@@ -134,8 +132,6 @@ Future<void> syncMitAppsScript(AusleiheStatus status) async {
     );
 
     final decoded = jsonDecode(response.body);
-
-    schliesseLadeDialog(); // ✅ Ladeanzeige beenden
 
     if (response.statusCode == 200) {
       debugPrint('✅ Apps Script erfolgreich:\n${decoded['message']}');

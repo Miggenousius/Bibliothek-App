@@ -180,6 +180,20 @@ $pdfTextContent
     final box = await Hive.openBox<PdfEintrag>('pdf_eintraege');
     await box.put(eintrag.id, eintrag);
 
+    // 📤 Trigger an Apps Script senden
+    await sendeTriggerNachUpload({
+      'id': eintrag.id,
+      'titel': eintrag.titel,
+      'fach': eintrag.fach,
+      'klassenstufe': eintrag.klassenstufe,
+      'zyklus': eintrag.zyklus,
+      'stufe': eintrag.stufe,
+      'uploader': eintrag.uploader,
+      'text': eintrag.text,
+      'timestamp': eintrag.timestamp.toIso8601String(),
+      'pdfUrl': eintrag.pdfUrl,
+    });
+
     if (context.mounted) {
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -193,6 +207,22 @@ $pdfTextContent
         SnackBar(content: Text('Fehler beim Hochladen: $e')),
       );
     }
+  }
+}
+
+Future<void> sendeTriggerNachUpload(Map<String, dynamic> daten) async {
+  const url = 'https://script.google.com/a/macros/kigaprima.ch/s/AKfycbwhtEk2C2uNjy8OUtR-M-JbaMaIIzB8UhySV5zm7BnaQ3gkgR_xXvvuRhQrbQeAcaab/exec';
+
+  final response = await http.post(
+    Uri.parse(url),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode(daten),
+  );
+
+  if (response.statusCode == 200) {
+    print('✅ Trigger erfolgreich ausgelöst');
+  } else {
+    print('❌ Fehler beim Triggern: ${response.statusCode}');
   }
 }
 
