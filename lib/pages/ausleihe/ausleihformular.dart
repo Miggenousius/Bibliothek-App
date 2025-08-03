@@ -7,8 +7,14 @@ import 'package:bibliotheks_app/services/google_auth_helper.dart';
 class Ausleihformular extends StatefulWidget {
   final String pdfId;
   final String titel;
+  final String verleihEmail; // 🆕 hinzugefügt
 
-  const Ausleihformular({super.key, required this.pdfId, required this.titel});
+  const Ausleihformular({
+    super.key,
+    required this.pdfId,
+    required this.titel,
+    required this.verleihEmail,
+  });
 
   @override
   State<Ausleihformular> createState() => _AusleihformularState();
@@ -170,6 +176,17 @@ class _AusleihformularState extends State<Ausleihformular> {
                         return null;
                       },
                     ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      initialValue: widget.verleihEmail,
+                      decoration: const InputDecoration(
+                        labelText: 'E-Mail des Verleihers',
+                        border: OutlineInputBorder(),
+                      ),
+                      readOnly: true,
+                      enabled: false, // verhindert sogar Fokus und Interaktion
+                      style: TextStyle(color: Colors.grey.shade700), // optional zur optischen Unterscheidung
+                    ),
                     const SizedBox(height: 20),
                     Row(
                       children: [
@@ -234,6 +251,9 @@ class _AusleihformularState extends State<Ausleihformular> {
                           final result = await googleDriveApiHolen();
                           final driveApi = result.driveApi;
 
+                          debugPrint('📄 PDF-ID: ${widget.pdfId}');
+                          debugPrint('📄 Titel: ${widget.titel}');
+
                           final status = await ladeOderErstelleAusleiheStatus(
                             pdfId: widget.pdfId,
                             titel: widget.titel,
@@ -247,7 +267,26 @@ class _AusleihformularState extends State<Ausleihformular> {
                           status.rueckgabeBis = _bisDatum!;
                           status.zurueckgegebenAm = null;
 
-                          await speichereAusleiheStatus(status: status, driveApi: driveApi);
+                          await speichereAusleiheStatus(
+                            status: status,
+                            driveApi: driveApi,
+                            verleihEmail: widget.verleihEmail, // 🆕 hinzufügen
+                          );
+
+                          await speichereAusleiheStatus(
+                            status: status,
+                            driveApi: driveApi,
+                            verleihEmail: widget.verleihEmail,
+                          );
+
+                          // ...weiterer Code...speichereAusleiheStatus(status: status, driveApi: driveApi);
+
+                          // 🆕 Verleih-Mail an Apps Script übergeben
+                          await speichereAusleiheStatus(
+                            status: status,
+                            driveApi: driveApi,
+                            verleihEmail: widget.verleihEmail, // 🆕 hinzufügen
+                          );
 
                           if (mounted) {
                             Navigator.of(context).pop();

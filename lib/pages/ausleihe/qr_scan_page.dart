@@ -27,8 +27,14 @@ import 'package:bibliotheks_app/pages/ausleihe/ausleihformular.dart';
 class QRScanPage extends StatefulWidget {
   final String pdfId;
   final String titel;
+  final String verleihEmail;
 
-  const QRScanPage({required this.pdfId, required this.titel, super.key});
+  const QRScanPage({
+    required this.pdfId,
+    required this.titel,
+    required this.verleihEmail,
+    super.key,
+  });
 
   @override
   State<QRScanPage> createState() => _QRScanPageState();
@@ -75,6 +81,7 @@ class _QRScanPageState extends State<QRScanPage> {
             builder: (context) => Ausleihformular(
               pdfId: widget.pdfId,
               titel: widget.titel,
+                verleihEmail: widget.verleihEmail,
             ),
           ),
         );

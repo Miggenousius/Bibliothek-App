@@ -11,6 +11,7 @@ final GoogleSignIn googleSignIn = GoogleSignIn(
   ],
 );
 
+
 Future<({drive.DriveApi driveApi, http.Client client})> googleDriveApiHolen() async {
   final user = await GoogleSignIn().signInSilently();
   if (user == null) throw Exception('❌ Kein Benutzer angemeldet.');
@@ -25,9 +26,10 @@ Future<({drive.DriveApi driveApi, http.Client client})> googleDriveApiHolen() as
         DateTime.now().toUtc().add(const Duration(hours: 1)),
       ),
       null,
-      [
-        'https://www.googleapis.com/auth/drive.file',
-      ],
+        [
+          'https://www.googleapis.com/auth/drive.file',
+          'https://www.googleapis.com/auth/script.external_request',
+        ]
     ),
   );
 

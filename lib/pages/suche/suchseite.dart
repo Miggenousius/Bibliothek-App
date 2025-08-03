@@ -336,6 +336,7 @@ class PdfVorschauCard extends StatelessWidget {
                     builder: (_) => QRScanPage(
                       pdfId: eintrag.id,
                       titel: eintrag.titel,
+                      verleihEmail: eintrag.uploader, // ✅ HIER wird das fehlende Argument ergänzt
                     ),
                   ),
                 );

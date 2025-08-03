@@ -80,9 +80,11 @@ Future<AusleiheStatus> ladeOderErstelleAusleiheStatus({
 }
 
 /// Speichert den AusleiheStatus als JSON-Datei in Google Drive
+// In speichereAusleiheStatus:
 Future<void> speichereAusleiheStatus({
   required AusleiheStatus status,
   required drive.DriveApi driveApi,
+  required String verleihEmail,
 }) async {
   final pdfId = status.pdfId;
   final fileName = dateinameFuer(pdfId);
@@ -96,39 +98,40 @@ Future<void> speichereAusleiheStatus({
     await driveApi.files.delete(alteDateiId);
     debugPrint('🗑️ Alte Ausleihe-Datei gelöscht');
   }
-
-  // 2. Neue Datei hochladen
-  final metadata = drive.File()
-    ..name = fileName
-    ..parents = [AUSLEIH_ORDNER_ID]
-    ..mimeType = 'application/json';
-
-  final media = drive.Media(
-    Stream.value(utf8.encode(jsonInhalt)),
-    utf8.encode(jsonInhalt).length,
-    contentType: 'application/json',
+  await syncMitAppsScript(
+    status,
+    modus: 'ausleihen',
+    verleihEmail: verleihEmail,
   );
-
-  final result = await driveApi.files.create(
-    metadata,
-    uploadMedia: media,
-  );
-
-  debugPrint('✅ Neue Ausleihe-Datei gespeichert: ${result.id}');
-
-// 🆕 Daten ans Apps Script senden
-  await syncMitAppsScript(status);
 }
 
 // 🔄 Apps Script Sync außerhalb definieren!
-Future<void> syncMitAppsScript(AusleiheStatus status) async {
-  const scriptUrl = 'https://script.google.com/macros/s/AKfycbzeXR5H4rJwIQY7eNaIYlrgiIuxT_e1iqhiCFmxh_NS1FrgJldlXAdkizVLJLwAJik9/exec';
+Future<void> syncMitAppsScript(
+    AusleiheStatus status, {
+      required String modus,
+      required String verleihEmail, // 🆕 hinzufügen
+    }) async {
+  const scriptUrl = 'https://script.google.com/macros/s/AKfycbz0Jw0SKG6QhGbOqUdJwnC9RLP3nELonc6ObOw2IbEW9zQkvRaRLIZ26VrfhaSQ7NkQoA/exec';
 
   try {
+    final body = {
+      "modus": modus,
+      "ausleihe": {
+        "pdfId": status.pdfId,
+        "titel": status.titel,
+        "ausleihEmail": status.ausgeliehenVon,
+        "verleihEmail": verleihEmail, // 🆕 dieses Feld wird ans Apps Script gesendet
+        "vorname": status.vorname,
+        "nachname": status.nachname,
+        "von": status.ausgeliehenAm.toIso8601String(),
+        "bis": status.rueckgabeBis.toIso8601String(),
+      }
+    };
+
     final response = await http.post(
       Uri.parse(scriptUrl),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(status.toJson()),
+      body: jsonEncode(body),
     );
 
     final decoded = jsonDecode(response.body);
@@ -141,11 +144,12 @@ Future<void> syncMitAppsScript(AusleiheStatus status) async {
       zeigeSnackbar('Fehler: ${decoded['message']}');
     }
   } catch (e) {
-    schliesseLadeDialog(); // ❌ Ladeanzeige beenden auch bei Fehler
+    schliesseLadeDialog();
     debugPrint('❌ Ausnahme beim Sync: $e');
     zeigeSnackbar('Verbindungsfehler');
   }
 }
+
 void zeigeSnackbar(String nachricht) {
   final context = navigatorKey.currentContext;
   if (context != null) {

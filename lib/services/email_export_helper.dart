@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 Future<void> sendeQrExportAnEmail(List<String> titelListe, String empfaengerEmail) async {
-  const String endpointUrl = 'https://script.google.com/macros/s/AKfycbyeLcr7BwCnkIxAoxi2Wq_w5iO61dzzov4evapTO4SM4Szf2sifreGdiTm5TmkTgdthtQ/exec';
+  const String endpointUrl = 'https://script.google.com/macros/s/AKfycbwclyUd1Q7iIFGztr5FBR3RpHdJCMcYJ8k3X75BGc7aQO-iAdOteG0CTx2BfrDLiOdwGg/exec';
   final body = jsonEncode({
     'titelListe': titelListe,
     'email': empfaengerEmail,

@@ -36,6 +36,13 @@ import 'package:bibliotheks_app/services/drive_helper.dart';
 import 'package:hive/hive.dart';
 import 'package:bibliotheks_app/services/qr_helper.dart';
 
+final GoogleSignIn googleSignIn = GoogleSignIn(
+  scopes: [
+    'email',
+    'https://www.googleapis.com/auth/drive.file',
+  ],
+);
+
 Future<void> uploadPdfToDrive(
     File pdfFile,
     GoogleSignInAccount user,
@@ -50,27 +57,20 @@ Future<void> uploadPdfToDrive(
     String hinweiseZurNutzung,
     String pdfTextContent,
     ) async {
-
   try {
-    // Ladeanzeige
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
-    // Authentifizierung
     final authHeaders = await user.authHeaders;
     final accessToken = authHeaders['Authorization']!.split(' ').last;
 
     final client = auth.authenticatedClient(
       http.Client(),
       auth.AccessCredentials(
-        auth.AccessToken(
-          'Bearer',
-          accessToken,
-          DateTime.now().toUtc().add(const Duration(hours: 1)),
-        ),
+        auth.AccessToken('Bearer', accessToken, DateTime.now().toUtc().add(const Duration(hours: 1))),
         null,
         ['https://www.googleapis.com/auth/drive.file'],
       ),
@@ -79,11 +79,9 @@ Future<void> uploadPdfToDrive(
     final driveApi = drive.DriveApi(client);
     const String hauptordnerId = '16Bc6D8Yv1ll-zkLsQOp8qxONMe4UvEEd';
 
-    // Ordnerstruktur erstellen
     final fachOrdnerId = await getOrCreateFolder(fach, hauptordnerId, driveApi);
     final klasseOrdnerId = await getOrCreateFolder(klassenstufe, fachOrdnerId, driveApi);
 
-    // Zyklus berechnen
     final zyklus = klassenstufe.contains('1.') || klassenstufe.contains('2.')
         ? '1. Zyklus'
         : klassenstufe.contains('3.') || klassenstufe.contains('4.')
@@ -92,7 +90,6 @@ Future<void> uploadPdfToDrive(
         ? '3. Zyklus'
         : 'Unbekannter Zyklus';
 
-    // PDF hochladen
     final fileMetadata = drive.File()
       ..name = '$titel.pdf'
       ..parents = [klasseOrdnerId];
@@ -100,7 +97,6 @@ Future<void> uploadPdfToDrive(
     final media = drive.Media(pdfFile.openRead(), await pdfFile.length());
     final uploadedFile = await driveApi.files.create(fileMetadata, uploadMedia: media);
 
-    // TXT-Datei erzeugen & hochladen
     final txtInhalt = '''
 Titel: $titel
 Zyklus: $zyklus
@@ -118,7 +114,6 @@ $hinweiseZurNutzung
     final txtBytes = utf8.encode(txtInhalt);
     final txtFileName = '$titel.txt';
     final txtMedia = drive.Media(Stream.value(txtBytes), txtBytes.length);
-
     final txtFileMetadata = drive.File()
       ..name = txtFileName
       ..parents = [klasseOrdnerId]
@@ -126,7 +121,6 @@ $hinweiseZurNutzung
 
     await driveApi.files.create(txtFileMetadata, uploadMedia: txtMedia);
 
-    // PDF öffentlich freigeben
     await driveApi.permissions.create(
       drive.Permission()
         ..type = 'anyone'
@@ -137,7 +131,6 @@ $hinweiseZurNutzung
     final fileId = uploadedFile.id;
     final pdfUrl = 'https://drive.google.com/file/d/$fileId/view?usp=sharing';
 
-    // QR-Code generieren & hochladen
     final qrImageBytes = await generateQrCodeBytes(pdfUrl);
     await uploadQrCodeToDrive(
       qrImageBytes: qrImageBytes,
@@ -146,9 +139,6 @@ $hinweiseZurNutzung
       driveApi: driveApi,
     );
 
-    print('Uploader-E-Mail beim Hochladen: ${user.email}');
-
-    // PdfEintrag erstellen
     final kompletterText = '''
 Titel: $titel
 Fach: $fach
@@ -160,7 +150,7 @@ $pdfTextContent
 ''';
 
     final eintrag = PdfEintrag(
-      id: fileId!,  // 🔁 Das ist die echte Drive-ID!
+      id: fileId!,
       titel: titel,
       fach: fach,
       klassenstufe: klassenstufe,
@@ -172,27 +162,13 @@ $pdfTextContent
       pdfUrl: pdfUrl,
     );
 
-    // JSON-Datei aktualisieren
     final jsonFileId = await getOrCreateBibliothekJsonInOrdner(driveApi);
     await addPdfEintragToJson(driveApi, jsonFileId, eintrag);
 
-    // In Hive speichern
     final box = await Hive.openBox<PdfEintrag>('pdf_eintraege');
     await box.put(eintrag.id, eintrag);
 
-    // 📤 Trigger an Apps Script senden
-    await sendeTriggerNachUpload({
-      'id': eintrag.id,
-      'titel': eintrag.titel,
-      'fach': eintrag.fach,
-      'klassenstufe': eintrag.klassenstufe,
-      'zyklus': eintrag.zyklus,
-      'stufe': eintrag.stufe,
-      'uploader': eintrag.uploader,
-      'text': eintrag.text,
-      'timestamp': eintrag.timestamp.toIso8601String(),
-      'pdfUrl': eintrag.pdfUrl,
-    });
+    await sendeTriggerNachUploadOhneToken();
 
     if (context.mounted) {
       Navigator.of(context).pop();
@@ -210,19 +186,21 @@ $pdfTextContent
   }
 }
 
-Future<void> sendeTriggerNachUpload(Map<String, dynamic> daten) async {
-  const url = 'https://script.google.com/a/macros/kigaprima.ch/s/AKfycbwhtEk2C2uNjy8OUtR-M-JbaMaIIzB8UhySV5zm7BnaQ3gkgR_xXvvuRhQrbQeAcaab/exec';
+Future<void> sendeTriggerNachUploadOhneToken() async {
+  const url = 'https://script.google.com/macros/s/AKfycbxzEg-Ck3C_jciCxdT4CT2meRFbYK58EpVQj0CVyt_li4p6iUGl3l-bQwdjPkmSr4Y/exec';
 
   final response = await http.post(
     Uri.parse(url),
     headers: {'Content-Type': 'application/json'},
-    body: jsonEncode(daten),
+    body: jsonEncode({'aktion': 'verarbeiteAlleTxtDateien'}),
   );
 
   if (response.statusCode == 200) {
     print('✅ Trigger erfolgreich ausgelöst');
+    print('Antwort: ${response.body}');
   } else {
     print('❌ Fehler beim Triggern: ${response.statusCode}');
+    print('Antwort: ${response.body}');
   }
 }
 
