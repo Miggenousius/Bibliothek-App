@@ -27,6 +27,7 @@ import 'package:bibliotheks_app/pages/artikel/bibliothek_artikel_page.dart';
 import 'package:bibliotheks_app/pages/ausleihe/qr_scan_page.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:bibliotheks_app/services/google_auth_helper.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 
 
@@ -315,7 +316,9 @@ class PdfVorschauCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              icon: const Icon(Icons.picture_as_pdf, color: Colors.green),
+              icon: const Icon(Icons.picture_as_pdf, color: Colors.green, size: 20),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
               tooltip: 'PDF anzeigen',
               onPressed: () {
                 Navigator.push(
@@ -327,7 +330,9 @@ class PdfVorschauCard extends StatelessWidget {
               },
             ),
             IconButton(
-              icon: const Icon(Icons.qr_code_scanner, color: Colors.blue),
+              icon: const Icon(Icons.qr_code_scanner, color: Colors.blue, size: 20),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
               tooltip: 'Ausleihen via QR-Code',
               onPressed: () {
                 Navigator.push(
@@ -344,10 +349,33 @@ class PdfVorschauCard extends StatelessWidget {
             ),
             if (istUploader)
               IconButton(
-                icon: const Icon(Icons.delete, color: Colors.red),
+                icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
                 tooltip: 'PDF löschen',
                 onPressed: () => _bestaetigeUndLoesche(context),
               ),
+            IconButton(
+              icon: const Icon(Icons.email, size: 20),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              tooltip: 'Uploader kontaktieren',
+              onPressed: () async {
+                final email = eintrag.uploader; // z. B. 'lara.muster@kigaprima.ch'
+                final uri = Uri(
+                  scheme: 'mailto',
+                  path: email,
+                  query: Uri.encodeFull('subject=Frage zum Bibliotheksartikel "${eintrag.titel}"'),
+                );
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('E-Mail-App konnte nicht geöffnet werden.')),
+                  );
+                }
+              },
+            ),
           ],
         ),
       ),

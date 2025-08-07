@@ -45,12 +45,12 @@ Future<void> syncFromGoogleDrive(drive.DriveApi driveApi, String fileId) async {
     ) as drive.Media;
 
     final content = await media.stream.transform(utf8.decoder).join();
-    print("📥 Heruntergeladene JSON-Daten: $content");
+    debugPrint("📥 Heruntergeladene JSON-Daten: $content");
 
     if (content.isEmpty) {
-      print("⚠️ Die JSON-Datei ist leer oder nicht vorhanden.");
+      debugPrint("⚠️ Die JSON-Datei ist leer oder nicht vorhanden.");
     } else {
-      print("📥 JSON-Daten erfolgreich heruntergeladen und verarbeitet.");
+      debugPrint("📥 JSON-Daten erfolgreich heruntergeladen und verarbeitet.");
 
       final decoded = json.decode(content) as List<dynamic>;
       final eintraege = decoded.map((e) => PdfEintrag.fromJson(e)).toList();
@@ -61,10 +61,10 @@ Future<void> syncFromGoogleDrive(drive.DriveApi driveApi, String fileId) async {
         await box.put(eintrag.id, eintrag);
       }
 
-      print("✅ Synchronisation abgeschlossen (${eintraege.length} Einträge)");
+      debugPrint("✅ Synchronisation abgeschlossen (${eintraege.length} Einträge)");
     }
   } catch (e) {
-    print("❌ Fehler bei Synchronisation: $e");
+    debugPrint("❌ Fehler bei Synchronisation: $e");
   }
 }
 
@@ -118,9 +118,9 @@ Future<void> addPdfEintragToJson(
     final updateFile = drive.File();
     await driveApi.files.update(updateFile, fileId, uploadMedia: mediaUpload);
 
-    print("✅ Neuer Eintrag zur JSON-Datei hinzugefügt.");
+    debugPrint("✅ Neuer Eintrag zur JSON-Datei hinzugefügt.");
   } catch (e) {
-    print("❌ Fehler beim Aktualisieren der JSON-Datei: $e");
+    debugPrint("❌ Fehler beim Aktualisieren der JSON-Datei: $e");
   }
 }
 
@@ -161,13 +161,13 @@ Future<void> loeschePdfEintrag(PdfEintrag eintrag, BuildContext context) async {
     if (txtResult.files != null && txtResult.files!.isNotEmpty) {
       for (final txtFile in txtResult.files!) {
         await driveApi.files.delete(txtFile.id!);
-        print("🗑️ TXT-Datei gelöscht (${txtFile.name})");
+        debugPrint("🗑️ TXT-Datei gelöscht (${txtFile.name})");
       }
     } else {
-      print("⚠️ Keine passende TXT-Datei gefunden.");
+      debugPrint("⚠️ Keine passende TXT-Datei gefunden.");
     }
   } catch (e) {
-    print("❌ Fehler beim Löschen der TXT-Datei: $e");
+    debugPrint("❌ Fehler beim Löschen der TXT-Datei: $e");
   }
 
   // QR-Code suchen und löschen
@@ -182,12 +182,12 @@ Future<void> loeschePdfEintrag(PdfEintrag eintrag, BuildContext context) async {
     if (result.files != null && result.files!.isNotEmpty) {
       final qrFileId = result.files!.first.id!;
       await driveApi.files.delete(qrFileId);
-      print("🗑️ QR-Code gelöscht (${eintrag.titel}.png)");
+      debugPrint("🗑️ QR-Code gelöscht (${eintrag.titel}.png)");
     } else {
-      print("⚠️ Kein passender QR-Code gefunden.");
+      debugPrint("⚠️ Kein passender QR-Code gefunden.");
     }
   } catch (e) {
-    print("❌ Fehler beim Löschen des QR-Codes: $e");
+    debugPrint("❌ Fehler beim Löschen des QR-Codes: $e");
   }
 
   // Hive: Eintrag löschen
@@ -222,9 +222,9 @@ Future<void> entfernePdfEintragAusJson(
     final updateFile = drive.File();
     await driveApi.files.update(updateFile, fileId, uploadMedia: mediaUpload);
 
-    print("🗑️ Eintrag aus JSON gelöscht (ID: $eintragId)");
+    debugPrint("🗑️ Eintrag aus JSON gelöscht (ID: $eintragId)");
   } catch (e) {
-    print("❌ Fehler beim Entfernen aus JSON: $e");
+    debugPrint("❌ Fehler beim Entfernen aus JSON: $e");
   }
 }
 /// Erstellt oder gibt die ID eines Ordners in Google Drive zurück
@@ -246,4 +246,70 @@ Future<String> getOrCreateFolder(String folderName, String parentId, drive.Drive
 
   final createdFolder = await driveApi.files.create(folder);
   return createdFolder.id!;
+}
+//Prüfen ob zentrale Auleihdatei json existier
+Future<drive.File?> findeDateiInDrive(String dateiname) async {
+  final driveApi = await getDriveApi(); // deine vorhandene Drive-Verbindung
+  final query = "name = '$dateiname' and trashed = false";
+  final result = await driveApi.files.list(q: query, spaces: 'drive');
+
+  if (result.files == null || result.files!.isEmpty) {
+    return null;
+  }
+
+  return result.files!.first;
+}
+/// Erstellt die zentrale Ausleih-JSON-Datei, wenn sie noch nicht existiert.
+/// Gibt die Datei-ID zurück.
+Future<String> getOrCreateZentraleAusleihJson() async {
+  final driveApi = await getDriveApi();
+  const dateiname = 'alle_aktuell.json';
+  const ordnerId = '16fvytAToCE2UztuH60YhY9EZc2mSIcc7'; // Ausleihsystem-Ordner (zentral)
+
+  final query =
+      "name='$dateiname' and '$ordnerId' in parents and trashed = false";
+  final result = await driveApi.files.list(q: query, spaces: 'drive');
+
+  if (result.files != null && result.files!.isNotEmpty) {
+    return result.files!.first.id!;
+  }
+
+  // Wenn nicht vorhanden: leeres JSON erstellen
+  final initialData = {
+    "ausleihen": [],
+  };
+  final content = jsonEncode(initialData);
+  final encoded = utf8.encode(content);
+  final stream = Stream.fromIterable([encoded]);
+  final media = drive.Media(stream, encoded.length);
+
+  final file = drive.File()
+    ..name = dateiname
+    ..mimeType = 'application/json'
+    ..parents = [ordnerId];
+
+  final created = await driveApi.files.create(file, uploadMedia: media);
+  debugPrint("📁 Neue zentrale Ausleihdatei erstellt: $dateiname");
+
+  return created.id!;
+}
+Future<drive.DriveApi> getDriveApi() async {
+  final user = await GoogleSignIn().signInSilently();
+  if (user == null) {
+    throw Exception('Nicht angemeldet');
+  }
+
+  final authHeaders = await user.authHeaders;
+  final accessToken = authHeaders['Authorization']!.split(' ').last;
+
+  final client = auth.authenticatedClient(
+    http.Client(),
+    auth.AccessCredentials(
+      auth.AccessToken('Bearer', accessToken, DateTime.now().toUtc().add(const Duration(hours: 1))),
+      null,
+      ['https://www.googleapis.com/auth/drive'],
+    ),
+  );
+
+  return drive.DriveApi(client);
 }
