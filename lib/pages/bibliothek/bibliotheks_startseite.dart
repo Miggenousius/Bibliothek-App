@@ -147,7 +147,7 @@ class BibliotheksStartseite extends StatelessWidget {
                           MaterialPageRoute(builder: (context) => const MeinePdfsUndQrcodesSeite()),
                         );
                       },
-                      child: const Text('Meine PDFs & QR-Codes'),
+                      child: const Text('Meine PDFs'),
                     ),
                   ],
                 ),

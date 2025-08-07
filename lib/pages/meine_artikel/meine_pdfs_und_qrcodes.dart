@@ -57,7 +57,7 @@ class _MeinePdfsUndQrcodesSeiteState extends State<MeinePdfsUndQrcodesSeite> wit
           controller: _tabController,
           tabs: const [
             Tab(icon: Icon(Icons.picture_as_pdf), text: 'PDFs'),
-            Tab(icon: Icon(Icons.qr_code), text: 'QR-Codes'),
+            //Tab(icon: Icon(Icons.qr_code), text: 'QR-Codes'),
           ],
         ),
         actions: [

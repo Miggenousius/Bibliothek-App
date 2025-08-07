@@ -301,80 +301,71 @@ class PdfVorschauCard extends StatelessWidget {
     final bool istUploader = eintrag.uploader.trim().toLowerCase() == currentUserEmail.trim().toLowerCase();
 
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: ListTile(
-        title: Text(eintrag.titel),
-        subtitle: Column(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Zyklus: ${eintrag.zyklus}, Stufe: ${eintrag.stufe}'),
-            Text('Uploader: ${eintrag.uploader}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            Text(eintrag.titel, style: const TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text("Zyklus: ${eintrag.zyklus}, Stufe: ${eintrag.stufe}"),
+            Text("Uploader: ${eintrag.uploader}", style: TextStyle(fontSize: 12, color: Colors.grey[700])),
             const SizedBox(height: 8),
-          ],
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.picture_as_pdf, color: Colors.green, size: 20),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              tooltip: 'PDF anzeigen',
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => BibliothekArtikelPage(eintrag: eintrag),
+            Wrap(
+              spacing: 10,
+              runSpacing: 6,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.picture_as_pdf, color: Colors.green),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => BibliothekArtikelPage(eintrag: eintrag),
+                      ),
+                    );
+                  },
+                ),
+//                IconButton(
+//                  icon: Icon(Icons.qr_code_scanner, color: Colors.blue),
+//                  onPressed: () {
+//                    Navigator.push(
+//                      context,
+//                      MaterialPageRoute(
+//                        builder: (_) => QRScanPage(
+//                          pdfId: eintrag.id,
+//                          titel: eintrag.titel,
+//                          verleihEmail: eintrag.uploader,
+//                        ),
+//                      ),
+//                    );
+//                  },
+//                ),
+//                if (istUploader)
+                  IconButton(
+                    icon: Icon(Icons.delete, color: Colors.red),
+                    onPressed: () => _bestaetigeUndLoesche(context),
                   ),
-                );
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.qr_code_scanner, color: Colors.blue, size: 20),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              tooltip: 'Ausleihen via QR-Code',
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => QRScanPage(
-                      pdfId: eintrag.id,
-                      titel: eintrag.titel,
-                      verleihEmail: eintrag.uploader, // ✅ HIER wird das fehlende Argument ergänzt
-                    ),
-                  ),
-                );
-              },
-            ),
-            if (istUploader)
-              IconButton(
-                icon: const Icon(Icons.delete, color: Colors.red, size: 20),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                tooltip: 'PDF löschen',
-                onPressed: () => _bestaetigeUndLoesche(context),
-              ),
-            IconButton(
-              icon: const Icon(Icons.email, size: 20),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              tooltip: 'Uploader kontaktieren',
-              onPressed: () async {
-                final email = eintrag.uploader; // z. B. 'lara.muster@kigaprima.ch'
-                final uri = Uri(
-                  scheme: 'mailto',
-                  path: email,
-                  query: Uri.encodeFull('subject=Frage zum Bibliotheksartikel "${eintrag.titel}"'),
-                );
-                if (await canLaunchUrl(uri)) {
-                  await launchUrl(uri);
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('E-Mail-App konnte nicht geöffnet werden.')),
-                  );
-                }
-              },
+                IconButton(
+                  icon: Icon(Icons.email, color: Colors.black),
+                  onPressed: () async {
+                    final email = eintrag.uploader;
+                    final uri = Uri(
+                      scheme: 'mailto',
+                      path: email,
+                      query: Uri.encodeFull('subject=Frage zum Bibliotheksartikel "${eintrag.titel}"'),
+                    );
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('E-Mail-App konnte nicht geöffnet werden.')),
+                      );
+                    }
+                  },
+                ),
+              ],
             ),
           ],
         ),
