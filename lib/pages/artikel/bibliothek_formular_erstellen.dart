@@ -115,7 +115,7 @@ class _BibliothekFormularErstellenState extends State<BibliothekFormularErstelle
 
       final pdfFile = await generatePdf(artikel);
       final googleSignIn = GoogleSignIn(
-        clientId: '863090442961-be5t1i9jso67cckbmpas25m0p03vdmgc.apps.googleusercontent.com',
+        clientId: '863090442961-f4j6avtfiem6d7fe8op4s6emaof1f3pi.apps.googleusercontent.com',
         scopes: ['email', 'https://www.googleapis.com/auth/drive.file'],
       );
 

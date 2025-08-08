@@ -5,6 +5,7 @@ import 'package:googleapis/drive/v3.dart' as drive;
 
 /// Google Sign-In Konfiguration mit benötigten Scopes
 final GoogleSignIn googleSignIn = GoogleSignIn(
+  clientId: '863090442961-f4j6avtfiem6d7fe8op4s6emaof1f3pi.apps.googleusercontent.com', // <--- hier einsetzen
   scopes: [
     'email',
     'https://www.googleapis.com/auth/drive.file',
@@ -13,7 +14,7 @@ final GoogleSignIn googleSignIn = GoogleSignIn(
 
 
 Future<({drive.DriveApi driveApi, http.Client client})> googleDriveApiHolen() async {
-  final user = await GoogleSignIn().signInSilently();
+  final user = await googleSignIn.signIn();
   if (user == null) throw Exception('❌ Kein Benutzer angemeldet.');
 
   final authHeaders = await user.authHeaders;

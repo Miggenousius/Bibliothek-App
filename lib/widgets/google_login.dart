@@ -67,6 +67,11 @@ class _GoogleLoginButtonState extends State<GoogleLoginButton> {
       }
     } catch (e) {
       print("❌ Fehler beim Login: $e");
+
+      // Web-kompatibles Logging
+      print('🔍 Fehlertyp: ${e.runtimeType}');
+      print('🧾 Fehlerdetails: $e');
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Anmeldung fehlgeschlagen")),
       );
